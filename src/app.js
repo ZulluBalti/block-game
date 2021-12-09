@@ -1,19 +1,20 @@
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import "./style.css";
 import * as dat from "dat.gui";
 import * as cannon from "cannon-es";
+import Stats from "stats.js";
 
 const scoreCon = document.querySelector(".score_container span");
-const gui = new dat.GUI();
 
-let scene, camera, renderer, controls, gameOver;
+let scene, camera, renderer, gameOver;
 let speed, direction, boxes, topBox, hangBoxes;
-let world, dirLight;
+let world, dirLight, gui, appStats;
 const sizes = { width: window.innerWidth, height: window.innerHeight };
 let isPaused = false;
+let isDebug = false;
 
 const start = () => {
+  if (isDebug) gui = new dat.GUI();
   window.focus();
   init();
 
@@ -34,27 +35,14 @@ const start = () => {
   // camera
 
   camera = new THREE.OrthographicCamera(-20, 20, 20, -20, 0.1, 1000);
+  camera.lookAt(0, 0, 0);
+  camera.rotation.set(-0.45, 0.75, 0.33);
   camera.position.set(10, 10, 10);
-  // camera.lookAt(0, 0, 0);
   scene.add(camera);
 
-  const guiCamera = gui.addFolder("Camera");
-  guiCamera.add(camera.position, "x", -100, 100, 1);
-  guiCamera.add(camera.position, "y", -100, 100, 1);
-  guiCamera.add(camera.position, "z", -100, 100, 1);
-
-  const guiCameraRot = gui.addFolder("Camera Rot");
-
-  guiCameraRot.add(camera.rotation, "x", -Math.PI, Math.PI, 0.1);
-  guiCameraRot.add(camera.rotation, "y", -Math.PI, Math.PI, 0.1);
-  guiCameraRot.add(camera.rotation, "z", -Math.PI, Math.PI, 0.1);
-
-  const cameraHelper = new THREE.CameraHelper(camera);
-  scene.add(cameraHelper);
-
-  // axes helper
-  const axesHelper = new THREE.AxesHelper();
-  scene.add(axesHelper);
+  if (isDebug) {
+    addDebuggingTools();
+  }
 
   // basic object
   addBox();
@@ -67,10 +55,32 @@ const start = () => {
   renderer.setSize(sizes.width, sizes.height);
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
 
-  controls = new OrbitControls(camera, canvas);
-  controls.update();
-
   animate();
+  scoreCon.style.display = "";
+};
+
+const addDebuggingTools = () => {
+  const guiCamera = gui.addFolder("Camera");
+  guiCamera.add(camera.position, "x", -100, 100, 1);
+  guiCamera.add(camera.position, "y", -100, 100, 1);
+  guiCamera.add(camera.position, "z", -100, 100, 1);
+
+  const guiCameraRot = gui.addFolder("Camera Rot");
+
+  guiCameraRot.add(camera.rotation, "x", -Math.PI, Math.PI, 0.01);
+  guiCameraRot.add(camera.rotation, "y", -Math.PI, Math.PI, 0.01);
+  guiCameraRot.add(camera.rotation, "z", -Math.PI, Math.PI, 0.01);
+
+  const cameraHelper = new THREE.CameraHelper(camera);
+  scene.add(cameraHelper);
+
+  // axes helper
+  const axesHelper = new THREE.AxesHelper(20);
+  scene.add(axesHelper);
+
+  appStats = new Stats();
+  appStats.showPanel(1);
+  document.body.appendChild(appStats.dom);
 };
 
 function init() {
@@ -83,14 +93,14 @@ function init() {
   gameOver = false;
   updateScore();
   toggleGameOverCon();
+  if (camera) {
+    camera.position.y = 10;
+  }
 }
 
-const clock = new THREE.Clock();
-
 const animate = () => {
+  if (isDebug) appStats.begin();
   renderer.render(scene, camera);
-  controls.update();
-  const timePassed = clock.getDelta();
 
   if (!isPaused) {
     world.step(1 / 60);
@@ -124,12 +134,13 @@ const animate = () => {
       }
     }
 
-    if (camera.position.y < (boxes.length - 2) * 3 + 10) {
-      camera.position.y += 1;
-      dirLight.position.y += 1;
+    if (camera.position.y < (boxes.length - 2) * 3 + 9) {
+      camera.position.y += speed;
+      dirLight.position.y += speed;
     }
   }
 
+  if (isDebug) appStats.end();
   window.requestAnimationFrame(animate);
 };
 
@@ -144,10 +155,11 @@ const addBox = () => {
     depth = topBox.depth;
   }
 
+  const color = `hsl(${30 + (boxes.length % 10) * 1.35} , 100%, 50%)`;
+
   const geometry = new THREE.BoxBufferGeometry(width, height, depth);
   const material = new THREE.MeshLambertMaterial({
-    color: new THREE.Color(`hsl(${30 + (boxes.length % 10) * 2} , 100%, 50%)`),
-    // wireframe: true,
+    color: new THREE.Color(color),
     shadowSide: true,
     clipShadows: true,
   });
@@ -203,6 +215,7 @@ const toggleGameOverCon = () => {
   const gameOverConScore = document.querySelector(".game_over_con span");
   const gameOverCon = document.querySelector(".game_over_con");
   if (gameOver) {
+    gameOverCon.style.display = "";
     gameOverCon.classList.add("active");
     gameOverConScore.textContent = "Score: " + (boxes.length - 1);
   } else {
@@ -212,7 +225,7 @@ const toggleGameOverCon = () => {
 };
 
 document.addEventListener("click", () => {
-  // stopBox();
+  stopBox();
 });
 
 document.addEventListener("keypress", (e) => {
@@ -293,7 +306,7 @@ const findUpdatedSize = () => {
 
 const setHangingPart = () => {
   let { width, height, depth, x, y, z } = findUpdatedSize();
-  const color = `hsl(${30 + (boxes.length % 10) * 2}, 100%, 50%)`;
+  const color = `hsl(${30 + ((boxes.length - 1) % 10) * 1.3}, 100%, 50%)`;
 
   const geometry = new THREE.BoxBufferGeometry(width, height, depth);
   const material = new THREE.MeshLambertMaterial({

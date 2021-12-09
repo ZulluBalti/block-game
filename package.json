@@ -4,7 +4,7 @@
   "description": "",
   "private": true,
   "scripts": {
-    "build": "webpack --config webpack.config.js",
+    "build": "webpack --mode production --config webpack.config.js",
     "watch": "webpack --watch --config webpack.config.js",
     "start": "webpack serve --open --config webpack.config.js"
   },
@@ -14,9 +14,11 @@
   "dependencies": {
     "cannon-es": "^0.18.0",
     "dat.gui": "^0.7.7",
+    "stats.js": "^0.17.0",
     "three": "^0.135.0"
   },
   "devDependencies": {
+    "brotli-webpack-plugin": "^1.1.0",
     "css-loader": "^6.5.1",
     "html-loader": "^3.0.1",
     "html-webpack-plugin": "^5.5.0",

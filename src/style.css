@@ -15,7 +15,7 @@ canvas {
 .score_container {
   position: fixed;
   top: 0.5rem;
-  left: 0.5rem;
+  right: 0.5rem;
   background: rgba(65, 65, 65, 0.9);
   padding: 0.3rem 0.5rem;
   border-radius: 3px;
@@ -36,7 +36,7 @@ canvas {
   width: 100%;
   height: 100vh;
   background: #0d3a4ea3;
-  display: flex;
+  display: none;
   flex-direction: column;
   justify-content: center;
   align-items: center;
@@ -53,4 +53,5 @@ canvas {
 
 .game_over_con.active {
   z-index: 10;
+  display: flex;
 }
